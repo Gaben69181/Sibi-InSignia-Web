@@ -36,4 +36,4 @@ npm run dev
 ## Technologies
 
 - **Frontend**: React, Vite, Tailwind CSS, React Router
-- **Backend**: Node.js, Express.js, CORS"# Sibi-InSignia-Web" 
+- **Backend**: Node.js, Express.js
