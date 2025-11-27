@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, NavLink, Routes, Route } from 'react-router-dom'
+import { Link, NavLink, Routes, Route, useLocation } from 'react-router-dom'
 import { motion as Motion } from 'framer-motion'
 
 import Home from './pages/Home.jsx'
@@ -21,6 +21,10 @@ function App() {
   const navLinkClass = ({ isActive }) =>
     `relative px-3 py-2 text-sm font-medium text-slate-300 hover:text-white transition-colors after:content-[''] after:absolute after:left-0 after:-bottom-0.5 after:h-0.5 after:bg-indigo-400 after:rounded-full after:transition-all after:duration-300 ${isActive ? 'text-white after:w-full' : 'after:w-0 hover:after:w-full'}`
 
+  // Ensure header is visible on non-home routes even after hard refresh
+  const location = useLocation()
+  const showHeader = introDone || location.pathname !== '/'
+
   return (
     <Motion.div
       key="app-shell"
@@ -30,7 +34,7 @@ function App() {
       className="min-h-screen text-slate-200 bg-app animate-gradient-slow selection:bg-indigo-500/30 selection:text-white"
     >
       {/* Top Bar */}
-      {introDone && (
+      {showHeader && (
         <Motion.header
           className="sticky top-0 z-40 backdrop-blur bg-transparent"
           initial={{ opacity: 0, y: -8 }}
