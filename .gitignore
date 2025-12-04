@@ -64,6 +64,3 @@ build/
 # Temporary files
 *.tmp
 *.temp
-
-# Dataset directory
-dataset/
