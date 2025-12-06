@@ -5,6 +5,7 @@ import { motion as Motion } from 'framer-motion'
 import Home from './pages/Home.jsx'
 import Dictionary from './pages/Dictionary.jsx'
 import Detect from './pages/Detect.jsx'
+import DetectStream from './pages/DetectStream.jsx'
 import Quiz from './pages/Quiz.jsx'
 
 function App() {
@@ -54,7 +55,7 @@ function App() {
                 <NavLink to="/dictionary" className={navLinkClass}>
                   Dictionary
                 </NavLink>
-                <NavLink to="/detect" className={navLinkClass}>
+                <NavLink to="/detect-stream" className={navLinkClass}>
                   Sign Detection
                 </NavLink>
                 <NavLink to="/quiz" className={navLinkClass}>
@@ -78,6 +79,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/dictionary" element={<Dictionary />} />
           <Route path="/detect" element={<Detect />} />
+          <Route path="/detect-stream" element={<DetectStream />} />
           <Route path="/quiz" element={<Quiz />} />
         </Routes>
       </main>

@@ -12,6 +12,7 @@ testing/
 ├── test_api.py              # Test FastAPI endpoint
 ├── test_dataset.py          # Test dataset & accuracy
 ├── visualize_detection.py   # Visualize detection results
+├── realtime_detection.py    # 🎥 Real-time webcam detection (NEW!)
 ├── output/                  # Output visualisasi (auto-generated)
 └── README.md                # Documentation
 ```
@@ -68,8 +69,11 @@ python test_api.py
 # Test dataset
 python test_dataset.py
 
-# Visualisasi
+# Visualisasi (batch)
 python visualize_detection.py
+
+# 🎥 Real-time detection dengan webcam (NEW!)
+python realtime_detection.py
 ```
 
 ## Test Descriptions
@@ -113,6 +117,81 @@ Menghasilkan gambar dengan bounding box hasil deteksi:
 - **Grid Visualization**: Grid 4x4 hasil deteksi
 
 Output disimpan di `testing/output/`
+
+### 5. 🎥 Real-time Detection (`realtime_detection.py`) ⭐ NEW!
+
+**Testing model secara real-time menggunakan webcam dengan GUI Python!**
+
+```powershell
+python realtime_detection.py
+```
+
+**Fitur:**
+- ✅ Real-time detection dari webcam
+- ✅ Bounding box hijau dengan label huruf
+- ✅ Confidence score di atas bounding box
+- ✅ Mirror mode (flip horizontal) untuk pengalaman natural
+- ✅ Info panel dengan statistik
+- ✅ Screenshot capability
+- ✅ Multi-camera support
+
+**Keyboard Controls:**
+- `Q` - Quit / keluar
+- `Space` - Ambil screenshot (disimpan ke `output/`)
+- `C` - Ganti kamera (jika ada multiple cameras)
+
+**Output:**
+```
+🚀 Initializing SIBI Detector...
+📦 Loading model: best.pt
+✅ Model loaded successfully!
+📊 Classes: 24 SIBI letters
+📷 Opening camera 0...
+✅ Camera opened successfully!
+
+============================================================
+🎥 Starting real-time detection...
+============================================================
+
+Controls:
+  Q       - Quit
+  Space   - Take screenshot
+  C       - Switch camera
+
+============================================================
+```
+
+**Screenshot dari real-time detection:**
+- Disimpan otomatis dengan nama: `screenshot_000.jpg`, `screenshot_001.jpg`, dll.
+- Lokasi: `testing/output/`
+
+**Tampilan Window:**
+```
+┌─────────────────────────────────────────┐
+│ SIBI Real-time Detection                │
+│ Frames: 245 | Detections: 89 | ...     │
+├─────────────────────────────────────────┤
+│     ┏━━━━━━━━━━━━━┓                    │
+│     ┃ V 95%       ┃ <- Label hijau     │
+│     ┣━━━━━━━━━━━━━┛                    │
+│     ┃                                   │
+│     ┃   [tangan]   <- Bounding box     │
+│     ┃                                   │
+│     ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛ │
+│                                         │
+│                     Detected: V         │
+│                     Confidence: 95.2%   │
+├─────────────────────────────────────────┤
+│ Q: Quit | Space: Screenshot | C: Cam   │
+└─────────────────────────────────────────┘
+```
+
+**Keuntungan testing dengan Python GUI:**
+- 🚀 Lebih cepat dari web (no HTTP overhead)
+- 🎯 Testing murni model tanpa backend/frontend
+- 📊 Statistik real-time yang detail
+- 🔍 Debug model lebih mudah
+- 💾 Ambil screenshot deteksi yang bagus
 
 ## Output Example
 

@@ -115,17 +115,43 @@ export default function Detect() {
  
     if (!predictionPayload) return
  
-    const { boxes = [] } = predictionPayload
+    const { boxes = [], letter = '-', confidence = 0 } = predictionPayload
  
     // Gambar bounding boxes (jika ada) — warna hijau
-    ctx.lineWidth = 3
-    ctx.strokeStyle = 'rgba(34,197,94,0.9)' // green-500
+    ctx.lineWidth = 4
+    ctx.strokeStyle = 'rgba(34,197,94,1)' // green-500
+    ctx.fillStyle = 'rgba(34,197,94,1)' // green-500 untuk background label
+    
     boxes.forEach((box) => {
       const bx = (box.x || 0) * width
       const by = (box.y || 0) * height
       const bw = (box.w || 0) * width
       const bh = (box.h || 0) * height
+      
+      // Draw bounding box
       ctx.strokeRect(bx, by, bw, bh)
+      
+      // Draw label dengan huruf dan confidence
+      if (letter && letter !== '-') {
+        const confPercent = (confidence * 100).toFixed(0)
+        const label = `${letter} ${confPercent}%`
+        
+        // Set font untuk text
+        ctx.font = 'bold 24px Arial'
+        const textMetrics = ctx.measureText(label)
+        const textWidth = textMetrics.width
+        const textHeight = 30
+        
+        // Background label (kotak hijau)
+        const labelX = bx
+        const labelY = by - textHeight - 8
+        ctx.fillStyle = 'rgba(34,197,94,1)'
+        ctx.fillRect(labelX, labelY, textWidth + 16, textHeight + 4)
+        
+        // Text label (putih)
+        ctx.fillStyle = 'white'
+        ctx.fillText(label, labelX + 8, labelY + 24)
+      }
     })
   }, [])
 
@@ -147,7 +173,11 @@ export default function Detect() {
     if (captureCanvas.height !== height) captureCanvas.height = height
 
     const ctx = captureCanvas.getContext('2d')
-    ctx.drawImage(videoEl, 0, 0, width, height)
+    // Flip horizontally to match mirrored webcam preview
+    ctx.save()
+    ctx.scale(-1, 1)
+    ctx.drawImage(videoEl, -width, 0, width, height)
+    ctx.restore()
 
     const dataUrl = captureCanvas.toDataURL('image/jpeg', 0.8)
 
@@ -351,6 +381,7 @@ export default function Detect() {
               <video
                 ref={videoRef}
                 className="h-full w-full object-cover"
+                style={{ transform: 'scaleX(-1)' }}
                 playsInline
                 autoPlay
                 muted
@@ -358,6 +389,7 @@ export default function Detect() {
               <canvas
                 ref={canvasRef}
                 className="pointer-events-none absolute inset-0 h-full w-full"
+                style={{ transform: 'scaleX(-1)' }}
               />
             </div>
 

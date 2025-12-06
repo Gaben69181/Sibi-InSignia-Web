@@ -3,6 +3,7 @@ import { useState } from 'react'
 // Dataset alfabet SIBI.
 // id di sini disamakan dengan class index YOLO (0 -> A, 1 -> B, dst.)
 // Backend akan mencari semua sample gambar di dataset yang punya classId sama.
+// CATATAN: Dataset memiliki 24 kelas (A-Y tanpa J dan Z)
 const ALPHABET_ITEMS = [
   { id: 0, letter: 'A' },
   { id: 1, letter: 'B' },
@@ -13,7 +14,7 @@ const ALPHABET_ITEMS = [
   { id: 6, letter: 'G' },
   { id: 7, letter: 'H' },
   { id: 8, letter: 'I' },
-  { id: 9, letter: 'K' },
+  { id: 9, letter: 'K' },   // (J tidak ada di dataset)
   { id: 10, letter: 'L' },
   { id: 11, letter: 'M' },
   { id: 12, letter: 'N' },
@@ -27,7 +28,7 @@ const ALPHABET_ITEMS = [
   { id: 20, letter: 'V' },
   { id: 21, letter: 'W' },
   { id: 22, letter: 'X' },
-  { id: 23, letter: 'Y' },
+  { id: 23, letter: 'Y' },  // (Z tidak ada di dataset)
 ]
 
 export default function Dictionary() {
@@ -128,7 +129,7 @@ export default function Dictionary() {
           {isWordSearch && (
             <p className="mt-2 text-xs text-amber-200 bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2">
               Fitur pencarian kata (selain alfabet tunggal) belum tersedia. Silakan cari per huruf
-              (A–Y).
+              (A–Y, tanpa J dan Z).
             </p>
           )}
         </div>

@@ -8,7 +8,6 @@ from pathlib import Path
 from PIL import Image
 from ultralytics import YOLO  # type: ignore[import]
 import numpy as np  # type: ignore[import]
-import cv2  # type: ignore[import]
 
 app = FastAPI(title="InSignia SIBI Detection API")
  
@@ -26,28 +25,22 @@ app.add_middleware(
 MODEL_PATH = Path(__file__).with_name("best.pt")
 yolo_model = YOLO(str(MODEL_PATH))
 
-# PERBAIKAN: Mapping kelas yang benar berdasarkan pengujian user
-# Model.names dari file training memiliki offset yang salah
+# Mapping kelas SIBI yang benar
+# Dataset memiliki 24 kelas: A-Y (tanpa J dan Z)
 # 
-# User testing menunjukkan:
-#   - Tangan V (2 jari) → model predicts class 19 → tampil U (SALAH!) → seharusnya V
-#   - Tangan W (3 jari) → model predicts class 20 → tampil V (SALAH!) → seharusnya W
+# Urutan huruf:
+#   A B C D E F G H I K L M N O P Q R S T U V W X Y
+#   0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23
 #
-# Kesimpulan: Label training ter-shift 1 posisi ke belakang dari class 19+
-# Solusi: Shift huruf 1 posisi ke depan mulai dari class 19
+# Catatan: Huruf J (setelah I) dan Z (setelah Y) tidak ada di dataset
 #
-# Mapping yang sudah diperbaiki:
 CORRECTED_CLASS_NAMES = {
     0: 'A', 1: 'B', 2: 'C', 3: 'D', 4: 'E', 5: 'F', 6: 'G', 7: 'H', 8: 'I',
-    9: 'K', 10: 'L', 11: 'M', 12: 'N', 13: 'O', 14: 'P', 15: 'Q', 16: 'R',
-    17: 'S', 18: 'T', 
-    19: 'V',  # DIPERBAIKI: V (bukan U) - tangan V terdeteksi sebagai class 19
-    20: 'W',  # DIPERBAIKI: W (bukan V) - tangan W terdeteksi sebagai class 20
-    21: 'X',  # DIPERBAIKI: X (bukan W)
-    22: 'Y',  # DIPERBAIKI: Y (bukan X)
-    23: 'Z'   # DIPERBAIKI: Z (bukan Y)
+    9: 'K',   # J tidak ada di dataset
+    10: 'L', 11: 'M', 12: 'N', 13: 'O', 14: 'P', 15: 'Q', 16: 'R',
+    17: 'S', 18: 'T', 19: 'U', 20: 'V', 21: 'W', 22: 'X', 23: 'Y'
+    # Z tidak ada di dataset
 }
-# Catatan: Huruf U tidak dapat dideteksi karena label training yang salah
 
 # Gunakan mapping yang sudah diperbaiki
 CLASS_NAMES = CORRECTED_CLASS_NAMES
@@ -99,28 +92,25 @@ def decode_image(data_url: str) -> Image.Image:
 async def detect(req: DetectRequest) -> DetectResponse:
     """
     Run SIBI detection on a single frame sent as base64 data URL.
- 
-    - Meng-decode frame dari base64 (data URL) → PIL Image.
-    - Menjalankan inference YOLO (`best.pt`) untuk mendapatkan bounding box + kelas.
-    - Mengonversi hasil ke format yang dipakai frontend:
-      - letter: huruf A..Z dari class id (0-25)
-      - confidence: skor confidence deteksi utama
-      - boxes: daftar 1 bounding box terpilih (normalized 0..1)
-      - keypoints + bones:
-          * Jika model adalah pose & punya keypoints → pakai keypoints asli.
-          * Jika hanya deteksi box → buat skeleton sederhana di tengah box (3 titik vertikal).
+    
+    Simplified version matching realtime_detection.py:
+    - Decode base64 image
+    - Run YOLO inference
+    - Return best detection with confidence > threshold
+    - Use direct YOLO bounding box (no OpenCV contour processing)
     """
     image = decode_image(req.image)
- 
-    # Konversi PIL → numpy array (YOLO menerima RGB numpy)
+    
+    # Convert PIL to numpy array (RGB format for YOLO)
     img_np = np.array(image)
- 
+    img_h, img_w = img_np.shape[:2]
+    
     try:
         results = yolo_model(img_np, verbose=False)[0]
-    except Exception as exc:  # pragma: no cover - jalur error runtime model
+    except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Model inference failed: {exc!s}") from exc
- 
-    # Jika tidak ada deteksi sama sekali
+    
+    # No detections at all
     if results.boxes is None or len(results.boxes) == 0:
         return DetectResponse(
             letter="-",
@@ -129,92 +119,65 @@ async def detect(req: DetectRequest) -> DetectResponse:
             bones=[],
             boxes=[],
         )
- 
-    # Ambil deteksi dengan confidence tertinggi
+    
+    # Get all detections and filter by confidence threshold
+    CONFIDENCE_THRESHOLD = 0.3  # Same as realtime_detection.py
     boxes_obj = results.boxes
-    scores = boxes_obj.conf.cpu().numpy() if hasattr(boxes_obj.conf, "cpu") else boxes_obj.conf.numpy()
-    best_idx = int(scores.argmax())
+    confidences = boxes_obj.conf.cpu().numpy() if hasattr(boxes_obj.conf, "cpu") else boxes_obj.conf.numpy()
+    
+    # Filter boxes by confidence
+    valid_indices = [i for i, conf in enumerate(confidences) if conf >= CONFIDENCE_THRESHOLD]
+    
+    if not valid_indices:
+        # No detections above threshold
+        return DetectResponse(
+            letter="-",
+            confidence=0.0,
+            keypoints=[],
+            bones=[],
+            boxes=[],
+        )
+    
+    # Get best detection (highest confidence)
+    best_idx = valid_indices[0]
+    for idx in valid_indices:
+        if confidences[idx] > confidences[best_idx]:
+            best_idx = idx
+    
     best_box = boxes_obj[best_idx]
- 
-    # Ambil info bounding box ter-normalisasi (cx, cy, w, h) dari YOLO
-    # xywhn sudah normalized 0..1 terhadap lebar/tinggi image
+    best_conf = float(confidences[best_idx])
+    
+    # Get YOLO bounding box in normalized format (center x, center y, width, height)
     cx, cy, w, h = best_box.xywhn[0].tolist()
+    
+    # Convert to top-left corner format for frontend
+    bx = cx - (w / 2.0)
+    by = cy - (h / 2.0)
+    bw = w
+    bh = h
  
-    # Hitung top-left box dari YOLO (fallback jika OpenCV gagal)
-    yolo_top_left_x = cx - (w / 2.0)
-    yolo_top_left_y = cy - (h / 2.0)
- 
-    # Coba hitung bounding box menggunakan OpenCV agar kontur tangan lebih diikuti
-    img_h, img_w = img_np.shape[:2]
-    opencv_box = None
-    try:
-        bgr = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
-        gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
-        blur = cv2.GaussianBlur(gray, (7, 7), 0)
-        _, thresh = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-        thresh = cv2.bitwise_not(thresh)
-        contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        if contours:
-            c = max(contours, key=cv2.contourArea)
-            x, y, w_box, h_box = cv2.boundingRect(c)
-            if w_box > 0 and h_box > 0:
-                opencv_box = (
-                    x / float(img_w),
-                    y / float(img_h),
-                    w_box / float(img_w),
-                    h_box / float(img_h),
-                )
-    except Exception:
-        opencv_box = None
- 
-    if opencv_box is not None:
-        bx, by, bw, bh = opencv_box
-    else:
-        bx, by, bw, bh = yolo_top_left_x, yolo_top_left_y, w, h
- 
-    # Simpan bounding box dalam format yang diharapkan frontend (x,y,w,h) normalized, x,y = top-left
+    # Save bounding box for frontend (x, y, w, h normalized, x,y = top-left)
     out_boxes = [Box(x=float(bx), y=float(by), w=float(bw), h=float(bh))]
- 
-    # Ambil class id → huruf dari model.names
-    if best_box.cls is not None:
-        cls_idx = int(best_box.cls.item())
-    else:
-        cls_idx = 0
-
-    # Gunakan nama kelas dari model (sudah benar tanpa J)
+    
+    # Get class ID and map to letter
+    cls_idx = int(best_box.cls.item())
+    
+    # Use corrected class names mapping (24 classes: A-Y without J and Z)
     if cls_idx in CLASS_NAMES:
         letter = CLASS_NAMES[cls_idx]
     else:
         letter = "?"
+    
+    confidence = best_conf
  
-    # Confidence 0..1
-    confidence = float(best_box.conf.item()) if best_box.conf is not None else 0.0
- 
-    keypoints: List[Keypoint] = []
-    bones: List[Tuple[int, int]] = []
- 
-    # ====== 1) Jika model adalah YOLO pose / keypoints, gunakan keypoints asli ======
-    has_kpts_attr = getattr(results, "keypoints", None) is not None
-    if has_kpts_attr and results.keypoints is not None and len(results.keypoints) > 0:
-        # xyn: normalized keypoints [num_instances, num_kpts, 2]
-        kpt_arr = results.keypoints.xyn[best_idx].tolist()
-        for (kx, ky) in kpt_arr:
-            keypoints.append(Keypoint(x=float(kx), y=float(ky)))
- 
-        # Skeleton sederhana: hubungkan keypoint berurutan (0-1, 1-2, dst.)
-        if len(keypoints) >= 2:
-            bones = [(i, i + 1) for i in range(len(keypoints) - 1)]
-    else:
-        # ====== 2) Jika tidak ada keypoints (model deteksi biasa), buat skeleton dummy di dalam box ======
-        base_y = cy + (h * 0.20)
-        mid_y = cy
-        tip_y = cy - (h * 0.20)
-        keypoints = [
-            Keypoint(x=float(cx), y=float(base_y)),
-            Keypoint(x=float(cx), y=float(mid_y)),
-            Keypoint(x=float(cx), y=float(tip_y)),
-        ]
-        bones = [(0, 1), (1, 2)]
+    # Simplified keypoints - create simple dummy skeleton in box center
+    # (Frontend mainly uses bounding box, keypoints are optional visualization)
+    keypoints: List[Keypoint] = [
+        Keypoint(x=float(cx), y=float(cy + (h * 0.20))),  # Bottom
+        Keypoint(x=float(cx), y=float(cy)),                # Middle
+        Keypoint(x=float(cx), y=float(cy - (h * 0.20))),  # Top
+    ]
+    bones: List[Tuple[int, int]] = [(0, 1), (1, 2)]
  
     return DetectResponse(
         letter=letter,
