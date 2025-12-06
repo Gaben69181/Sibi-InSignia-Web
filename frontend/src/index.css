@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+/* App-specific utilities */
+@layer utilities {
+  .bg-app {
+    /* Moving overlay gradient + static depth gradients */
+    background:
+      linear-gradient(120deg, rgba(56,189,248,0.10), rgba(99,102,241,0.10)),
+      radial-gradient(1200px 600px at 50% -200px, rgba(99,102,241,0.18), transparent 60%),
+      radial-gradient(800px 400px at -100px 100px, rgba(56,189,248,0.12), transparent 60%),
+      linear-gradient(180deg, #0b1220, #0f172a 40%, #0b1220);
+    /* Make the first layer animate slowly via tailwind keyframes (animate-gradient-slow) */
+    background-size: 300% 300%, auto, auto, auto;
+    background-position: 50% 50%, 50% 50%, 50% 50%, 50% 50%;
+    will-change: background-position;
+  }
+}

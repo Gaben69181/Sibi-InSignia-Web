@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>InSignia</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Inter (body), Orbitron & Press Start 2P (titles) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Orbitron:wght@400;600;700;800&family=Press+Start+2P&display=swap" rel="stylesheet">
+    <meta name="theme-color" content="#0b1220" />
+    <style>
+      /* Prevent white flash before CSS/app mounts */
+      html { background: #0b1220; color-scheme: dark; }
+      body {
+        margin: 0;
+        /* Paint the full-page gradient immediately to avoid any white frame */
+        background:
+          radial-gradient(1200px 600px at 50% -200px, rgba(99,102,241,0.18), transparent 60%),
+          radial-gradient(800px 400px at -100px 100px, rgba(56,189,248,0.12), transparent 60%),
+          linear-gradient(180deg, #0b1220, #0f172a 40%, #0b1220);
+        background-attachment: fixed;
+        min-height: 100vh;
+      }
+      #root { min-height: 100vh; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
