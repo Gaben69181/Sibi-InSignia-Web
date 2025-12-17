@@ -1,0 +1,6 @@
+@echo off
+cd /d "%~dp0model"
+echo Installing Python dependencies...
+echo Starting Model Server...
+python detect_server.py
+
