@@ -66,7 +66,7 @@ function App() {
  
             <div className="shrink-0">
               <span className="inline-flex items-center rounded-full bg-white/10 border border-white/15 px-3 py-1 text-xs text-slate-300">
-                Running: locally
+                Running: {import.meta.env.PROD ? 'production' : 'development'}
               </span>
             </div>
           </div>
