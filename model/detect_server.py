@@ -4,15 +4,16 @@ from pydantic import BaseModel
 from typing import List, Tuple
 import base64
 import io
+import os
 from pathlib import Path
 from PIL import Image
 from ultralytics import YOLO  # type: ignore[import]
 import numpy as np  # type: ignore[import]
 
 app = FastAPI(title="InSignia SIBI Detection API")
- 
+
 origins = ["*"]
- 
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -20,10 +21,28 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
- 
-# Muat model YOLO sekali secara global
-MODEL_PATH = Path(__file__).with_name("best.pt")
-yolo_model = YOLO(str(MODEL_PATH))
+
+# Global model variable
+yolo_model = None
+
+def load_model():
+    """Load YOLO model with error handling."""
+    global yolo_model
+    try:
+        MODEL_PATH = Path(__file__).with_name("best.pt")
+        print(f"Loading YOLO model from: {MODEL_PATH}")
+        if not MODEL_PATH.exists():
+            raise FileNotFoundError(f"Model file not found: {MODEL_PATH}")
+
+        yolo_model = YOLO(str(MODEL_PATH))
+        print(f"✅ Model loaded successfully! Classes: {len(yolo_model.names)}")
+        return True
+    except Exception as e:
+        print(f"❌ Failed to load model: {e}")
+        return False
+
+# Load model on startup
+MODEL_LOADED = load_model()
 
 # Mapping kelas SIBI yang benar
 # Dataset memiliki 24 kelas: A-Y (tanpa J dan Z)
@@ -44,6 +63,17 @@ CORRECTED_CLASS_NAMES = {
 
 # Gunakan mapping yang sudah diperbaiki
 CLASS_NAMES = CORRECTED_CLASS_NAMES
+
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for Railway monitoring."""
+    return {
+        "status": "healthy" if MODEL_LOADED else "unhealthy",
+        "model_loaded": MODEL_LOADED,
+        "model_path": str(Path(__file__).with_name("best.pt")),
+        "classes": len(CLASS_NAMES) if MODEL_LOADED else 0
+    }
 
 
 class DetectRequest(BaseModel):
@@ -92,13 +122,16 @@ def decode_image(data_url: str) -> Image.Image:
 async def detect(req: DetectRequest) -> DetectResponse:
     """
     Run SIBI detection on a single frame sent as base64 data URL.
-    
+
     Simplified version matching realtime_detection.py:
     - Decode base64 image
     - Run YOLO inference
     - Return best detection with confidence > threshold
     - Use direct YOLO bounding box (no OpenCV contour processing)
     """
+    if not MODEL_LOADED or yolo_model is None:
+        raise HTTPException(status_code=503, detail="Model not loaded")
+
     image = decode_image(req.image)
     
     # Convert PIL to numpy array (RGB format for YOLO)
@@ -191,9 +224,15 @@ async def detect(req: DetectRequest) -> DetectResponse:
 if __name__ == "__main__":
     import uvicorn
 
+    # Get port from environment (Railway) or default to 8002
+    port = int(os.environ.get('PORT', 8002))
+
+    print(f"Starting SIBI Detection API server on port {port}")
+    print(f"Model loaded: {MODEL_LOADED}")
+
     # Jalankan langsung objek app tanpa reload (stabil untuk struktur folder saat ini)
     uvicorn.run(
         app,
         host="0.0.0.0",
-        port=8002,
+        port=port,
     )
