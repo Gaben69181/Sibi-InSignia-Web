@@ -4,5 +4,22 @@
   },
   "deploy": {
     "startCommand": "echo 'Multi-service SIBI Detection App deployed successfully'"
+  },
+  "services": {
+    "frontend": {
+      "src": "frontend",
+      "buildCommand": "npm install && npm run build",
+      "startCommand": "npm run preview"
+    },
+    "backend": {
+      "src": "backend",
+      "buildCommand": "npm install",
+      "startCommand": "npm start"
+    },
+    "model": {
+      "src": "model",
+      "buildCommand": "pip install -r requirements.txt",
+      "startCommand": "python detect_server.py"
+    }
   }
 }
