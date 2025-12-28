@@ -3,11 +3,6 @@
   "buildCommand": "cd frontend && npm install && npm run build",
   "outputDirectory": "frontend/dist",
   "framework": "vite",
-  "env": {
-    "VITE_DETECT_API_URL": "@vite_detect_api_url",
-    "VITE_STREAM_API_URL": "@vite_stream_api_url",
-    "VITE_BACKEND_API_URL": "@vite_backend_api_url"
-  },
   "rewrites": [
     {
       "source": "/(.*)",
