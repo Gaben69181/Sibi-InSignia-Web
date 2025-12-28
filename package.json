@@ -8,10 +8,9 @@
     "backend"
   ],
   "scripts": {
-    "dev": "echo 'Use individual service scripts'",
-    "build": "echo 'Monorepo - build individual services'",
-    "start": "echo 'Monorepo - start individual services'"
-  },
+  "build": "react-scripts build",
+  "start": "serve -s build -l $PORT"
+},
   "keywords": ["sibi", "sign-language", "detection", "ml", "react"],
   "author": "",
   "license": "ISC"
