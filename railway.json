@@ -1,0 +1,80 @@
+{
+  "build": {
+    "builder": "NIXPACKS"
+  },
+  "deploy": {
+    "startCommand": "echo 'SIBI Detection Multi-Service App deployed successfully'"
+  },
+  "services": {
+    "frontend": {
+      "src": "frontend",
+      "buildCommand": "npm install && npm run build",
+      "startCommand": "npm run preview",
+      "nixpacks": {
+        "config": {
+          "phases": {
+            "setup": {
+              "nixPkgs": []
+            }
+          }
+        }
+      }
+    },
+    "backend": {
+      "src": "backend",
+      "buildCommand": "npm install",
+      "startCommand": "npm start",
+      "nixpacks": {
+        "config": {
+          "phases": {
+            "setup": {
+              "nixPkgs": []
+            }
+          }
+        }
+      }
+    },
+    "detect-model": {
+      "src": "model",
+      "buildCommand": "pip install -r requirements.txt",
+      "startCommand": "python detect_server.py",
+      "nixpacks": {
+        "config": {
+          "pythonVersion": "3.11",
+          "phases": {
+            "setup": {
+              "nixPkgs": [
+                "libGL",
+                "libGLU",
+                "glib",
+                "stdenv.cc.cc.lib",
+                "gcc"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "stream-model": {
+      "src": "model",
+      "buildCommand": "pip install -r requirements.txt",
+      "startCommand": "python stream_server.py",
+      "nixpacks": {
+        "config": {
+          "pythonVersion": "3.11",
+          "phases": {
+            "setup": {
+              "nixPkgs": [
+                "libGL",
+                "libGLU",
+                "glib",
+                "stdenv.cc.cc.lib",
+                "gcc"
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}
